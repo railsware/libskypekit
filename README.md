@@ -54,7 +54,7 @@ Probably it's better to create package for your OS and install it via package ma
 
 ## API
 
-See [skypekit.h](https://github.com/railsware/libskypekit/blob/oop/include/skypekit.h).
+See [skypekit.h](https://github.com/railsware/libskypekit/blob/master/include/skypekit.h)
 
 ## Examples
 
