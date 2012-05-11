@@ -1,0 +1,259 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Libskypekit by railsware</title>
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="javascripts/respond.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <!--[if lt IE 8]>
+    <link rel="stylesheet" href="stylesheets/ie.css">
+    <![endif]-->
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+
+  </head>
+  <body>
+      <div id="header">
+        <nav>
+          <li class="fork"><a href="https://github.com/railsware/libskypekit">View On GitHub</a></li>
+          <li class="downloads"><a href="https://github.com/railsware/libskypekit/zipball/master">ZIP</a></li>
+          <li class="downloads"><a href="https://github.com/railsware/libskypekit/tarball/master">TAR</a></li>
+          <li class="title">DOWNLOADS</li>
+        </nav>
+      </div><!-- end header -->
+
+    <div class="wrapper">
+
+      <section>
+        <div id="title">
+          <h1>Libskypekit</h1>
+          <p>Thread-safe C library with synchronous API using asynchronous C++ SkypeKit SDK</p>
+          <hr>
+          <span class="credits left">Project maintained by <a href="https://github.com/railsware">railsware</a></span>
+          <span class="credits right">Hosted on GitHub Pages &mdash; Theme by <a href="http://twitter.com/#!/michigangraham">mattgraham</a></span>
+        </div>
+
+        <p><img src="http://blog.railsware.com/wp-content/uploads/2012/05/libskypekit.png" alt="logo"></p>
+
+<h2>Libskypekit</h2>
+
+<p>Libskypekit is thread-safe C library that provides <em>synchronous</em> SkypeKit API for <em>asynchronous</em> C++ SkypeKit SDK.</p>
+
+<h2>Description</h2>
+
+<p>The goal of Libskypekit is catch all asynchronous callbacks of SkypeKit SDK and push they as events into one queue.</p>
+
+<p>Then regular synchronous application can pull queue, retrieve each event and do own business logic.</p>
+
+<p>Currently implemented events:</p>
+
+<ul>
+<li>Account status changed</li>
+<li>Chat message received</li>
+</ul><h2>Memory management</h2>
+
+<p>For each new event Libskypekit dynamically allocates memory for event structure and for event data and then push event into internal events queue. The queue size is only limited by size of operating system available memory.
+So after processing certain event you are responsible to free event memory otherwise you will have memory leak. See corresponding API call.</p>
+
+<h2>Dependencies</h2>
+
+<ul>
+<li>SkypeKit SDK 4.x.x</li>
+</ul><h2>Building</h2>
+
+<p><strong>Note.</strong> Before build libskypekit you must obtain, unpack and compile SkypeKit SDK first!</p>
+
+<pre><code>$ git clone git@github.com:railsware/libskypekit.git
+$ cd libskypekit   
+$ DEBUG=1 SKYPEKIT_SDK=path/to/compliled/sdk ./build.sh
+</code></pre>
+
+<p><code>DEBUG=1</code> is optional but gives your opportunity to see what is going in library.</p>
+
+<h2>Issues on x86_64</h2>
+
+<p>When you have error like:</p>
+
+<pre><code>relocation R_X86_64_32S against `vtable for SEClientSession' can not be used when making a shared object; recompile with -fPIC
+</code></pre>
+
+<p>Try to recompile SDK with <code>-fPIC</code> :</p>
+
+<pre><code>export CC="gcc -fPIC"
+export CXX="g++ -fPIC"
+./BuildWithCmake.sh
+</code></pre>
+
+<h2>Installation</h2>
+
+<p>To install bin, include, lib files into <code>/usr/local</code> just type:</p>
+
+<pre><code>$ sudo ./install.sh
+</code></pre>
+
+<p>Probably it's better to create package for your OS and install it via package manager.</p>
+
+<h2>API</h2>
+
+<p>See <a href="https://github.com/railsware/libskypekit/blob/master/include/skypekit.h">skypekit.h</a></p>
+
+<h2>Examples</h2>
+
+<p>In <code>examples</code> directory you may find out how you may use libevent.</p>
+
+<div class="highlight">
+<pre><span class="cp">#include &lt;stdio.h&gt;</span>
+<span class="cp">#include &lt;stdlib.h&gt;</span>
+<span class="cp">#include &lt;unistd.h&gt;</span>
+<span class="cp">#include &lt;signal.h&gt;</span>
+
+<span class="cp">#include "skypekit.h"</span>
+
+<span class="k">static</span> <span class="k">struct</span> <span class="n">SkypekitSkype</span><span class="o">*</span> <span class="n">skype</span><span class="p">;</span>
+
+<span class="kt">void</span> <span class="nf">terminate</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Terminating skype ...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+  <span class="n">skypekit_skype_stop</span><span class="p">(</span><span class="n">skype</span><span class="p">);</span>
+  <span class="n">skypekit_skype_free</span><span class="p">(</span><span class="n">skype</span><span class="p">);</span>
+
+  <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+<span class="p">}</span>
+
+<span class="kt">void</span> <span class="nf">check_error</span><span class="p">(</span><span class="n">skypekit_error_t</span> <span class="n">error</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">error</span> <span class="o">!=</span> <span class="n">SKYPEKIT_OK</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"Error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">error</span><span class="p">);</span>
+    <span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="kt">int</span> <span class="nf">main</span><span class="p">(</span><span class="kt">int</span> <span class="n">argc</span><span class="p">,</span> <span class="kt">char</span><span class="o">**</span> <span class="n">argv</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">struct</span> <span class="n">SkypekitEvent</span><span class="o">*</span> <span class="n">event</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">SkypekitAccountStatusData</span><span class="o">*</span> <span class="n">account_status_data</span><span class="p">;</span>
+  <span class="k">struct</span> <span class="n">SkypekitChatMessageData</span><span class="o">*</span> <span class="n">chat_message_data</span><span class="p">;</span>
+
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">keyfile</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">host</span><span class="p">;</span>
+  <span class="kt">int</span> <span class="n">port</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">skypename</span><span class="p">;</span>
+  <span class="k">const</span> <span class="kt">char</span><span class="o">*</span> <span class="n">password</span><span class="p">;</span>
+
+  <span class="k">if</span> <span class="p">(</span><span class="n">argc</span> <span class="o">&lt;</span> <span class="mi">6</span><span class="p">)</span>
+  <span class="p">{</span>
+    <span class="n">printf</span><span class="p">(</span><span class="s">"usage: %s &lt;keyfile&gt; &lt;host&gt; &lt;port&gt; &lt;skypename&gt; &lt;password&gt;</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
+    <span class="k">return</span> <span class="mi">1</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="n">keyfile</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+  <span class="n">host</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+  <span class="n">port</span> <span class="o">=</span> <span class="n">atoi</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]);</span>
+  <span class="n">skypename</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">];</span>
+  <span class="n">password</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span>
+
+  <span class="n">skype</span> <span class="o">=</span> <span class="n">skypekit_skype_new</span><span class="p">();</span>
+
+  <span class="n">signal</span><span class="p">(</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">terminate</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Initializing skype ...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+  <span class="n">skypekit_skype_init</span><span class="p">(</span><span class="n">skype</span><span class="p">,</span> <span class="n">keyfile</span><span class="p">,</span> <span class="n">host</span><span class="p">,</span> <span class="n">port</span><span class="p">,</span> <span class="nb">NULL</span><span class="p">);</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Start skype ...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+  <span class="n">check_error</span><span class="p">(</span><span class="n">skypekit_skype_start</span><span class="p">(</span><span class="n">skype</span><span class="p">));</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Log in to skype ...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+  <span class="n">check_error</span><span class="p">(</span><span class="n">skypekit_skype_login</span><span class="p">(</span><span class="n">skype</span><span class="p">,</span> <span class="n">skypename</span><span class="p">,</span> <span class="n">password</span><span class="p">));</span>
+
+  <span class="n">printf</span><span class="p">(</span><span class="s">"Start loop ...</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+
+  <span class="k">while</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="p">{</span>
+    <span class="n">event</span> <span class="o">=</span> <span class="n">skypekit_get_event</span><span class="p">(</span><span class="n">skype</span><span class="p">);</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="n">event</span><span class="p">)</span> <span class="p">{</span>
+      <span class="n">sleep</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
+      <span class="k">continue</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="k">switch</span><span class="p">(</span><span class="n">event</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">case</span> <span class="n">SKYPEKIT_EVENT_ACCOUNT_STATUS</span>:
+        <span class="n">account_status_data</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">SkypekitAccountStatusData</span><span class="o">*</span><span class="p">)</span> <span class="n">event</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">account_status_data</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">==</span> <span class="n">SKYPEKIT_ACCOUNT_STATUS_LOGGED_IN</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">printf</span><span class="p">(</span><span class="s">"Congrats! We are Logged in!</span><span class="se">\n</span><span class="s">"</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">if</span> <span class="p">(</span> <span class="n">account_status_data</span><span class="o">-&gt;</span><span class="n">status</span> <span class="o">==</span> <span class="n">SKYPEKIT_ACCOUNT_STATUS_LOGGED_OUT</span> <span class="o">&amp;&amp;</span> 
+            <span class="n">account_status_data</span><span class="o">-&gt;</span><span class="n">reason</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">printf</span><span class="p">(</span><span class="s">"Login error: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">account_status_data</span><span class="o">-&gt;</span><span class="n">reason</span><span class="p">);</span>
+          <span class="n">terminate</span><span class="p">();</span>
+        <span class="p">}</span>
+
+        <span class="k">break</span><span class="p">;</span>
+
+      <span class="k">case</span>  <span class="n">SKYPEKIT_EVENT_CHAT_MESSAGE</span>:
+        <span class="n">chat_message_data</span> <span class="o">=</span> <span class="p">(</span><span class="k">struct</span> <span class="n">SkypekitChatMessageData</span><span class="o">*</span><span class="p">)</span> <span class="n">event</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Message received %p</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"convo_id=%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">convo_id</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"convo_guid=%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">convo_guid</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"author=%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">author</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"author_displayname=%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">author_displayname</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"timestamp=%d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">timestamp</span><span class="p">);</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"body_xml=%s</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">body_xml</span><span class="p">);</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">strcmp</span><span class="p">(</span><span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">body_xml</span><span class="p">,</span><span class="s">"ping"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+          <span class="n">skypekit_chat_send_message</span><span class="p">(</span><span class="n">skype</span><span class="p">,</span> <span class="n">chat_message_data</span><span class="o">-&gt;</span><span class="n">convo_id</span><span class="p">,</span> <span class="s">"pong"</span><span class="p">,</span> <span class="mi">0</span><span class="p">);</span>
+        <span class="p">}</span>
+
+        <span class="k">break</span><span class="p">;</span>
+
+      <span class="nl">default:</span>
+        <span class="n">printf</span><span class="p">(</span><span class="s">"Unknown event type: %d</span><span class="se">\n</span><span class="s">"</span><span class="p">,</span> <span class="n">event</span><span class="o">-&gt;</span><span class="n">type</span><span class="p">);</span>
+        <span class="k">break</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="n">skypekit_event_free</span><span class="p">(</span><span class="n">event</span><span class="p">);</span>
+  <span class="p">}</span>
+
+  <span class="k">return</span> <span class="mi">0</span><span class="p">;</span>
+<span class="p">}</span>
+</pre>
+</div>
+
+
+<p>Build it with:</p>
+
+<pre><code>$ ./build_examples.sh
+</code></pre>
+
+<p>Run ping_pong example:</p>
+
+<pre><code>$ ./bin/skypekit_ping_pong my.pem 127.0.0.1 8963 my_skypename my_password
+</code></pre>
+
+<h2>Author</h2>
+
+<ul>
+<li>Andriy Yanko</li>
+</ul><h2>Contributors</h2>
+
+<ul>
+<li>Volodymyr Bezobiuk</li>
+<li>Alexey Vasiliev</li>
+</ul><h2>License</h2>
+
+<ul>
+<li>Copyright (c) 2012 Railsware (<a href="http://www.railsware.com">www.railsware.com</a>)</li>
+<li><a href="http://www.opensource.org/licenses/MIT">MIT</a></li>
+</ul>
+      </section>
+
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+    
+  </body>
+</html>
