@@ -38,7 +38,7 @@ bool SkypekitSkype::ReadCertificate(const char* filename) {
 
     if (this->certbuff != NULL) {
       fread(this->certbuff, size, 1, fd);
-      this->certbuff[size+1] = '\000';
+      this->certbuff[size] = '\0';
       retval = true;
     }
 
