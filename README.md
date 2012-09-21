@@ -24,11 +24,11 @@ So after processing certain event you are responsible to free event memory other
 
 ## Building
 
-**Note.** Before build libskypekit you must obtain, unpack and compile SkypeKit SDK first!
+**Note.** Before building libskypekit you must obtain, unpack and compile SkypeKit SDK first! For now SkypeKit for Embedded costs $5 and the file with SDK is named like `sdp-distro-embedded-skypekit_4.3.1.17_1899690.tar.gz` (depends on the current version). After that you have to compile the C++ sources in the `interfaces/skype/cpp_embedded` directory. Finally, you can build libskypekit:
 
     $ git clone git@github.com:railsware/libskypekit.git
-    $ cd libskypekit   
-    $ DEBUG=1 SKYPEKIT_SDK=path/to/compliled/sdk ./build.sh
+    $ cd libskypekit
+    $ DEBUG=1 SKYPEKIT_SDK=path/to/compliled/embedded-sdk ./build.sh
 
 `DEBUG=1` is optional but gives your opportunity to see what is going in library.
 
